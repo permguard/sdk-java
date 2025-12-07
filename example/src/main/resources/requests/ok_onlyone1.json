@@ -1,55 +1,26 @@
 {
   "authorization_model": {
-    "zone_id": 646309364259,
+    "zone_id": 634601921829,
     "policy_store": {
       "kind": "ledger",
-      "id": "917e468442634c5486319ca6f09475e8"
+      "id": "417b278c0d024cf789e3d3c2bc9854c6"
     },
     "principal": {
-      "type": "user",
-      "id": "amy.smith@acmecorp.com",
-      "source": "keycloak"
-    },
-    "entities": {
-      "schema": "cedar",
-      "items": [
-        {
-          "uid": {
-            "type": "PharmaAuthZFlow::Platform::BranchInfo",
-            "id": "subscription"
-          },
-          "attrs": {
-            "active": true
-          },
-          "parents": []
-        }
-      ]
+      "type": "workload",
+      "id": "spiffe://edge.example.com/workload/64ad91fec7b0403eaf5d37e56c14ba42",
+      "source": "spire"
     }
   },
-  "request_id": "abc1",
+  "request_id": "1f12378d138e4c75b70d7cfa32345d39",
   "subject": {
-    "type": "workload",
-    "id": "platform-creator",
-    "source": "keycloak",
-    "properties": {
-      "isSuperUser": true
-    }
+    "type": "attribute",
+    "id": "role/branch-owner"
   },
   "resource": {
-    "type": "PharmaAuthZFlow::Platform::Subscription",
-    "id": "e3a786fd07e24bfa95ba4341d3695ae8",
-    "properties": {
-      "isEnabled": true
-    }
+    "type": "PharmaAuthZFlow::Platform::Branch",
+    "id": "fb008a600df04b21841c4fb5ad27ddf7"
   },
   "action": {
-    "name": "PharmaAuthZFlow::Platform::Action::create",
-    "properties": {
-      "isEnabled": true
-    }
-  },
-  "context": {
-    "time": "2025-01-23T16:17:46+00:00",
-    "isSubscriptionActive": true
+    "name": "PharmaAuthZFlow::Platform::Action::assign-role"
   }
 }
