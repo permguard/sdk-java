@@ -27,8 +27,6 @@ import com.permguard.pep.model.response.AZResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Utility class for testing authorization requests, equivalent to check.py in Python.
@@ -36,11 +34,21 @@ import java.util.Map;
 public class Check {
 
     private static final String JSON_FILE_PATH = "requests/ok_onlyone1.json";
-    public static final long ZONE_ID = 646309364259L;
-    public static final String POLICY_STORE_ID = "917e468442634c5486319ca6f09475e8";
-    public static final String EMAIL = "amy.smith@acmecorp.com";
-    public static final String USER = "user";
-    public static final String KEYCLOAK = "keycloak";
+    public static final long ZONE_ID = 634601921829L;
+    public static final String POLICY_STORE_ID = "417b278c0d024cf789e3d3c2bc9854c6";
+
+    public static final String PRINCIPAL_ID = "spiffe://edge.example.com/workload/64ad91fec7b0403eaf5d37e56c14ba42";
+    public static final String PRINCIPAL_TYPE = "workload";
+    public static final String PRINCIPAL_SOURCE = "spire";
+
+    public static final String SUBJECT_ID = "role/branch-owner";
+    public static final String SUBJECT_TYPE = "attribute";
+
+    public static final String RESOURCE_ID = "fb008a600df04b21841c4fb5ad27ddf7";
+    public static final String RESOURCE_TYPE = "PharmaAuthZFlow::Platform::Branch";
+
+    public static final String ACTION_NAME = "PharmaAuthZFlow::Platform::Action::assign-role";
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static void main(String[] args) {
@@ -86,47 +94,29 @@ public class Check {
         }
     }
 
-
-
-
-
     public static void checkAtomicRequest(AZClient client) {
         try {
             long zoneId = ZONE_ID;
             String policyStoreId = POLICY_STORE_ID;
-            String requestId = "abc1";
+            String requestId = "atomic-request-001";
 
-            Principal principal = new PrincipalBuilder(EMAIL)
-                    .withType(USER)
-                    .withSource(KEYCLOAK)
+            Principal principal = new PrincipalBuilder(PRINCIPAL_ID)
+                    .withType(PRINCIPAL_TYPE)
+                    .withSource(PRINCIPAL_SOURCE)
                     .build();
-
-            Entities entities = new Entities("cedar", List.of(
-                    Map.of(
-                            "uid", Map.of("type", "PharmaAuthZFlow::Platform::BranchInfo", "id", "subscription"),
-                            "attrs", Map.of("active", true),
-                            "parents", List.of()
-                    )
-            ));
 
             // Build the atomic AZRequest using the exact JSON parameters
             AZRequest request = new AZAtomicRequestBuilder(
                     zoneId,
                     policyStoreId,
-                    "platform-creator",  // Subject id from JSON
-                    "PharmaAuthZFlow::Platform::Subscription",  // Resource type from JSON
-                    "PharmaAuthZFlow::Platform::Action::create"  // Action name from JSON
+                    SUBJECT_ID,
+                    RESOURCE_TYPE,
+                    ACTION_NAME
             )
                     .withRequestId(requestId)
                     .withPrincipal(principal)
-                    .withEntitiesItems("cedar", entities)
-                    .withSubjectSource(KEYCLOAK)
-                    .withSubjectProperty("isSuperUser", true)
-                    .withResourceId("e3a786fd07e24bfa95ba4341d3695ae8")
-                    .withResourceProperty("isEnabled", true)
-                    .withActionProperty("isEnabled", true)
-                    .withContextProperty("time", "2025-01-23T16:17:46+00:00")
-                    .withContextProperty("isSubscriptionActive", true)
+                    .withSubjectType(SUBJECT_TYPE)
+                    .withResourceId(RESOURCE_ID)
                     .build();
 
             // Perform atomic authorization check
@@ -144,76 +134,48 @@ public class Check {
 
     public static void checkMultipleEvaluationsRequest(AZClient client) {
         try {
-            // Extract values from JSON (matching your provided data)
             long zoneId = ZONE_ID;
             String policyStoreId = POLICY_STORE_ID;
             String requestId = "batch-eval-001";
-            String subjectId = "platform-creator";
-            String subjectType = "workload";
-            String resourceId = "e3a786fd07e24bfa95ba4341d3695ae8";
-            String resourceType = "PharmaAuthZFlow::Platform::Subscription";
 
             // Create Principal
-            Principal principal = new PrincipalBuilder(subjectId)
-                    .withType(subjectType)
-                    .withSource(KEYCLOAK)
+            Principal principal = new PrincipalBuilder(PRINCIPAL_ID)
+                    .withType(PRINCIPAL_TYPE)
+                    .withSource(PRINCIPAL_SOURCE)
                     .build();
 
             // Create Subject
-            Subject subject = new SubjectBuilder(subjectId)
-                    .withType(subjectType)
-                    .withSource(KEYCLOAK)
-                    .withProperty("isSuperUser", true)
+            Subject subject = new SubjectBuilder(SUBJECT_ID)
+                    .withType(SUBJECT_TYPE)
                     .build();
 
             // Create Resource
-            Resource resource = new ResourceBuilder(resourceType)
-                    .withId(resourceId)
-                    .withProperty("isEnabled", true)
+            Resource resource = new ResourceBuilder(RESOURCE_TYPE)
+                    .withId(RESOURCE_ID)
                     .build();
 
             // Create Actions
+            Action actionAssignRole = new ActionBuilder(ACTION_NAME)
+                    .build();
+
             Action actionView = new ActionBuilder("PharmaAuthZFlow::Platform::Action::view")
-                    .withProperty("isEnabled", true)
                     .build();
-
-            Action actionCreate = new ActionBuilder("PharmaAuthZFlow::Platform::Action::create")
-                    .withProperty("isEnabled", true)
-                    .build();
-
-            // Create Context
-            Map<String, Object> context = Map.of(
-                    "time", "2025-01-23T16:17:46+00:00",
-                    "isSubscriptionActive", true
-            );
 
             // Create Evaluations
+            Evaluation evaluationAssignRole = new EvaluationBuilder(subject, resource, actionAssignRole)
+                    .withRequestId("eval-assign-role")
+                    .build();
+
             Evaluation evaluationView = new EvaluationBuilder(subject, resource, actionView)
-                    .withRequestId("1234")
-                    .withContext(context)
+                    .withRequestId("eval-view")
                     .build();
-
-            Evaluation evaluationCreate = new EvaluationBuilder(subject, resource, actionCreate)
-                    .withRequestId("7890")
-                    .withContext(context)
-                    .build();
-
-            // Create Entities
-            Entities entities = new Entities("cedar", List.of(
-                    Map.of(
-                            "uid", Map.of("type", "PharmaAuthZFlow::Platform::BranchInfo", "id", "subscription"),
-                            "attrs", Map.of("active", true),
-                            "parents", List.of()
-                    )
-            ));
 
             // Build the AZRequest with multiple evaluations
             AZRequest request = new AZRequestBuilder(zoneId, policyStoreId)
                     .withRequestId(requestId)
                     .withPrincipal(principal)
-                    .withEntitiesItems(entities.getSchema(), entities)
+                    .withEvaluation(evaluationAssignRole)
                     .withEvaluation(evaluationView)
-                    .withEvaluation(evaluationCreate)
                     .build();
 
             // Perform authorization check with multiple evaluations
@@ -227,10 +189,6 @@ public class Check {
             e.printStackTrace();
         }
     }
-
-
-
-
 
     /**
      * Prints the result of an authorization request.
