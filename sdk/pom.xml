@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.permguard.pep</groupId>
     <artifactId>permguard</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-alpha</version>
     <name>Permguard</name>
     <description>The official Java SDK for Permguard</description>
     <url>https://github.com/permguard/sdk-java</url>

@@ -29,9 +29,9 @@ import java.util.Map;
 public class AZAtomicRequestBuilder {
     private final AZRequestBuilder requestBuilder;
     private final String subjectId;
-    private final String subjectType; // ✅ Preserve subject type
-    private final String resourceType; // ✅ Preserve resource type
-    private final String actionName; // ✅ Preserve action name
+    private String subjectType;
+    private final String resourceType;
+    private final String actionName;
     private String requestId;
     private String subjectSource;
     private String resourceId;
@@ -51,12 +51,11 @@ public class AZAtomicRequestBuilder {
      */
     public AZAtomicRequestBuilder(long zoneId, String policyStoreId, String id, String resourceType, String actionName) {
         this.requestBuilder = new AZRequestBuilder(zoneId, policyStoreId);
-        this.subjectId = id; // ✅ Store the original subject ID
-        this.subjectType = "workload"; // ✅ Default to workload (can be modified)
-        this.resourceType = resourceType; // ✅ Store the resource type
-        this.actionName = actionName; // ✅ Store the action name
+        this.subjectId = id;
+        this.resourceType = resourceType;
+        this.actionName = actionName;
 
-        this.requestBuilder.withSubject(new SubjectBuilder(id).withType(this.subjectType).build());
+        this.requestBuilder.withSubject(new SubjectBuilder(id).build());
         this.requestBuilder.withResource(new ResourceBuilder(resourceType).build());
         this.requestBuilder.withAction(new ActionBuilder(actionName).build());
     }
@@ -79,12 +78,10 @@ public class AZAtomicRequestBuilder {
     }
 
     /**
-     * Sets the subject type (without overwriting previous values).
+     * Sets the subject type.
      */
     public AZAtomicRequestBuilder withSubjectType(String type) {
-        if (type != null && !type.isEmpty()) {
-            this.requestBuilder.withSubject(new SubjectBuilder(subjectId).withType(type).build());
-        }
+        this.subjectType = type;
         return this;
     }
 
@@ -148,22 +145,18 @@ public class AZAtomicRequestBuilder {
      * Builds the AZRequest object, ensuring all properties are correctly applied.
      */
     public AZRequest build() {
-        // ✅ Ensure the subject ID is not lost and type is preserved
         Subject subject = new SubjectBuilder(this.subjectId)
-                .withType(this.subjectType) // ✅ Preserve subject type
+                .withType(this.subjectType)
                 .withSource(subjectSource)
                 .build();
-        subject.getProperties().putAll(subjectProperties); // ✅ Append properties
+        subject.getProperties().putAll(subjectProperties);
 
-        // ✅ Preserve resource ID and type
         Resource resource = new ResourceBuilder(this.resourceType).withId(resourceId).build();
-        resource.getProperties().putAll(resourceProperties); // ✅ Append properties
+        resource.getProperties().putAll(resourceProperties);
 
-        // ✅ Preserve action name and append properties
         Action action = new ActionBuilder(this.actionName).build();
-        action.getProperties().putAll(actionProperties); // ✅ Append properties
+        action.getProperties().putAll(actionProperties);
 
-        // ✅ Apply context properties
         this.requestBuilder.withContext(context);
 
         return requestBuilder.withSubject(subject)

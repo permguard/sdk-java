@@ -28,7 +28,7 @@ import java.util.Map;
  * Builder for creating a Subject object.
  */
 public class SubjectBuilder {
-    private String type = "user"; // Default type
+    private String type;
     private String id;
     private String source;
     private Map<String, Object> properties = new HashMap<>();
