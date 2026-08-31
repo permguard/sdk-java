@@ -64,7 +64,10 @@ class Mapper {
                 .setZoneID(model.getZoneId())
                 .setPolicyStore(mapPolicyStore(model.getPolicyStore()))
                 .setPrincipal(mapPrincipal(model.getPrincipal()))
-                .setEntities(mapEntities(model.getEntities()))
+                .setEntities(model.getEntities() != null ? mapEntities(model.getEntities()) :
+                        AuthorizationCheck.Entities.newBuilder().build()
+                )
+
                 .build();
     }
 
@@ -93,8 +96,8 @@ class Mapper {
         return AuthorizationCheck.Subject.newBuilder()
                 .setType(subject.getType())
                 .setID(subject.getId())
-                .setSource(subject.getSource())
-                .setProperties(GrpcStructMapper.toGrpcStruct(subject.getProperties()))
+                .setSource(subject.getSource() != null ? subject.getSource() : "")
+                .setProperties(subject.getProperties() != null ? GrpcStructMapper.toGrpcStruct(subject.getProperties()) : com.google.protobuf.Struct.newBuilder().build())
                 .build();
     }
 
@@ -102,14 +105,14 @@ class Mapper {
         return AuthorizationCheck.Resource.newBuilder()
                 .setType(resource.getType())
                 .setID(resource.getId())
-                .setProperties(GrpcStructMapper.toGrpcStruct(resource.getProperties()))
+                .setProperties(resource.getProperties() != null ? GrpcStructMapper.toGrpcStruct(resource.getProperties()) : com.google.protobuf.Struct.newBuilder().build())
                 .build();
     }
 
     private AuthorizationCheck.Action mapAction(Action action) {
         return AuthorizationCheck.Action.newBuilder()
                 .setName(action.getName())
-                .setProperties(GrpcStructMapper.toGrpcStruct(action.getProperties()))
+                .setProperties(action.getProperties() != null ? GrpcStructMapper.toGrpcStruct(action.getProperties()) : com.google.protobuf.Struct.newBuilder().build())
                 .build();
     }
 
