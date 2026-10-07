@@ -1,159 +1,133 @@
-# The official Java SDK for Permguard
+<!--
+Copyright (c) 2022 Nitro Agility S.r.l.
+SPDX-License-Identifier: Apache-2.0
+-->
 
-[![GitHub License](https://img.shields.io/github/license/permguard/sdk-java)](https://github.com/permguard/sdk-java?tab=Apache-2.0-1-ov-file#readme)
-[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/permguard)](https://x.com/intent/follow?original_referer=https%3A%2F%2Fdeveloper.x.com%2F&ref_src=twsrc%5Etfw%7Ctwcamp%5Ebuttonembed%7Ctwterm%5Efollow%7Ctwgr%5ETwitterDev&screen_name=Permguard)
+# Permguard Java SDK
 
-[![Documentation](https://img.shields.io/website?label=Docs&url=https%3A%2F%2Fwww.permguard.com%2F)](https://www.permguard.com/)
-[![Build, test and publish the artifacts](https://github.com/permguard/sdk-java/actions/workflows/sdk-java-ci.yml/badge.svg)](https://github.com/permguard/sdk-java/actions/workflows/sdk-java-ci.yml)
+The official Java client for the stateless Permguard PDP interface
+`permguard.api.pdp.native.v1`.
 
-[![Watch the video on YouTube](https://raw.githubusercontent.com/permguard/permguard-assets/refs/heads/main/video/permguard-thumbnail-preview.png)](https://youtu.be/cH_boKCpLQ8?si=i1fWFHT5kxQQJoYN)
+One public API supports both server bindings:
 
-[Watch the video on YouTube](https://youtu.be/cH_boKCpLQ8?si=i1fWFHT5kxQQJoYN)
+- `http://` and `https://` use JSON;
+- `grpc://` and `grpcs://` use `permguard.data.v1.PolicyDecisionPoint`.
 
-The Permguard Java SDK provides a simple and flexible client to perform authorization checks against a Permguard Policy Decision Point (PDP) service using gRPC. This README explains how to install the SDK, configure the client, and integrate it into your Java application.
+## Requirements
 
----
-
-## Prerequisites
-
-- **Java 17**
-- **Maven**
-
----
+Java 17 or newer and Maven.
 
 ## Installation
 
-Add the following dependency and build configuration to your project's `pom.xml` file:
-
 ```xml
-<dependencies>
-    <dependency>
-        <groupId>com.permguard.pep</groupId>
-        <artifactId>permguard</artifactId>
-        <version>0.0.2</version>
-    </dependency>
-</dependencies>
-
-<build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version>
-            <configuration>
-                <source>17</source>
-                <target>17</target>
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
+<dependency>
+    <groupId>com.permguard.pep</groupId>
+    <artifactId>permguard</artifactId>
+    <version>0.0.1</version>
+</dependency>
 ```
 
----
-
-## Usage Example
-
-Below is a sample Java `main` method demonstrating how to create a Permguard client, build an authorization request using a builder pattern, and process the authorization response:
+## Evaluate one request
 
 ```java
-public static void main(String[] args) {
-    // Create and configure the Permguard client.
-    AZConfig config = new AZConfig("localhost", 9094, true);
-    AZClient client = new AZClient(config);
+import com.permguard.Client;
+import com.permguard.Pdp;
 
-    long zoneId = 611159836099L;
-            String policyStoreId = "f96586c317c74aaaae4ff2ba2fef0459";
-            String requestId = "abc1";
+try (var client = new Client("grpc://localhost:7443")) {
+    // Use http://localhost:7443 for the HTTP/JSON binding.
+    var request = Pdp.EvaluateRequest.builder("acme", "documents")
+            .subject(new Pdp.Entity("user", "amy@example.com"))
+            .resource(new Pdp.Entity("document", "quarterly-report"))
+            .action(new Pdp.Action("read"))
+            .build();
 
-            Principal principal = new PrincipalBuilder("amy.smith@acmecorp.com")
-                    .withType("user")
-                    .withSource("keycloak")
-                    .build();
-
-            Entities entities = new Entities("cedar", List.of(
-                    Map.of(
-                            "uid", Map.of("type", "PharmaAuthZFlow::Platform::BranchInfo", "id", "subscription"),
-                            "attrs", Map.of("active", true),
-                            "parents", List.of()
-                    )
-            ));
-
-            // ✅ Build the atomic AZRequest using the exact JSON parameters
-            AZRequest request = new AZAtomicRequestBuilder(
-                    zoneId,
-                    policyStoreId,
-                    "platform-creator",  // Subject id from JSON
-                    "PharmaAuthZFlow::Platform::Subscription",  // Resource type from JSON
-                    "PharmaAuthZFlow::Platform::Action::create"  // Action name from JSON
-            )
-                    .withRequestId(requestId)
-                    .withPrincipal(principal)
-                    .withEntitiesItems("cedar", entities)
-                    .withSubjectSource("keycloak")
-                    .withSubjectProperty("isSuperUser", true)
-                    .withResourceId("e3a786fd07e24bfa95ba4341d3695ae8")
-                    .withResourceProperty("isEnabled", true)
-                    .withActionProperty("isEnabled", true)
-                    .withContextProperty("time", "2025-01-23T16:17:46+00:00")
-                    .withContextProperty("isSubscriptionActive", true)
-                    .build();
-
-            AZResponse response = client.check(request);
-            if (response == null) {
-                System.out.println("❌ Authorization request failed.");
-                return;
-            }
-    
-            if (response.isDecision()) {
-                System.out.println("✅ Authorization Permitted");
-            } else {
-                System.out.println("❌ Authorization request failed.");
-            }
+    var response = client.evaluate(request);
+    System.out.println("permitted: " + response.decision());
 }
 ```
 
----
+A deny is a successful response with `decision() == false`. Validation,
+authorization, availability, and server failures throw `Refusal`, preserving
+their stable class and code.
 
-## Configuration
-
-The SDK uses the `AZConfig` class to hold connection parameters for your Permguard PDP service. For example:
+## Partition inputs
 
 ```java
-    AZConfig config = new AZConfig("localhost", 9094, true);
-    AZClient client = new AZClient(config);
+var request = Pdp.EvaluateRequest.builder("acme", "documents")
+        .partitionInputs(Map.of(
+                "authorization",
+                new Pdp.PartitionInput(
+                        "permguard.cedar.entities.v1",
+                        List.of(Map.of(
+                                "uid", Map.of("type", "Team", "id", "engineering"),
+                                "attrs", Map.of("active", true),
+                                "parents", List.of())))))
+        .build();
 ```
 
-- **host**: The hostname or IP address of your PDP service.
-- **port**: The port number.
-- **usePlaintext**: Use plaintext if TLS is not required; otherwise, configure TLS as needed.
+The map key is the partition name declared by the selected profile. `type`
+asserts the input contract; it does not select a policy runtime.
 
-> **Govern Authority. From Policies to Continuity.**
+## Evaluate a batch
 
-**Permguard** is the authorization engine for both worlds: enforce policies on today's systems, enforce continuity on tomorrow's. One engine for governance, AI agents, and distributed execution.
-This repository implements the Permguard Java SDK (Authorization Check).
+```java
+var request = Pdp.EvaluateRequest.builder("acme", "documents")
+        .subject(new Pdp.Entity("user", "amy@example.com"))
+        .evaluations(List.of(
+                Pdp.Evaluation.builder()
+                        .resource(new Pdp.Entity("document", "one"))
+                        .action(new Pdp.Action("read"))
+                        .requestId("one")
+                        .build(),
+                Pdp.Evaluation.builder()
+                        .resource(new Pdp.Entity("document", "two"))
+                        .action(new Pdp.Action("read"))
+                        .requestId("two")
+                        .build()))
+        .options(new Pdp.EvaluationOptions(Pdp.EvaluationsSemantic.EXECUTE_ALL))
+        .build();
 
----
+var response = client.evaluateMany(request);
+```
 
-## Version Compatibility
+An evaluation whose `partitionInputs` is `null` inherits request defaults. An
+explicit empty map replaces the defaults with no inputs; the SDK preserves this
+distinction on both transports.
 
-Our SDK follows a versioning scheme aligned with the Server versions to ensure seamless integration. The versioning format is as follows:
+## Discovery and transport options
 
-**SDK Versioning Format:** `x.y.z`
+```java
+var options = Client.Options.builder()
+        .timeout(Duration.ofSeconds(5))
+        .header("authorization", "Bearer " + token)
+        .build();
 
-- **x.y**: Indicates the compatible Server version.
-- **z**: Represents the SDK's patch or minor updates specific to that server version.
+try (var client = new Client("https://pdp.example.com", options)) {
+    var configuration = client.getConfiguration();
+}
+```
 
-**Compatibility Examples:**
+The same static headers are HTTP headers or gRPC metadata. `Options` also
+accepts a custom `HttpClient`, HTTP `SSLContext`, or gRPC `ChannelCredentials`.
+Every call has an overload accepting its own timeout.
 
-- `SDK Version 1.3.0` is compatible with `Server 1.3`.
-- `SDK Version 1.3.1` includes minor improvements or bug fixes for `Server 1.3`.
+## Compatibility
 
-**Incompatibility Example:**
+This major version implements `permguard.api.pdp.native.v1`. Compatibility is
+tied to that versioned interface rather than to a server minor version.
 
-- `SDK Version 1.3.0` **may not be guaranteed** to be compatible with `Server 1.4` due to potential changes introduced in server version `1.4`.
+## Development
 
-**Important:** Ensure that the major and minor versions (`x.y`) of the SDK match those of your Server to maintain compatibility.
+```bash
+mvn -f sdk/pom.xml test
+mvn -f sdk/pom.xml package
+./scripts/third-party-notices.sh --check
+```
 
----
+Maven generates protobuf and gRPC sources from the checked-in native v1
+contract during every build.
 
-Created by [Nitro Agility](https://www.nitroagility.com/).
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

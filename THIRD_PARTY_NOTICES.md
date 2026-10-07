@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2022 Nitro Agility S.r.l.
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Third-Party Notices
 
 The Permguard Java SDK is distributed under the Apache License, Version 2.0. It depends on the
@@ -11,7 +16,7 @@ covers what is distributed, and a test harness is not.
 
 ## Packages
 
-39 packages.
+26 packages.
 
 | Package | Version | Licence | Source |
 | ------- | ------- | ------- | ------ |
@@ -32,25 +37,12 @@ covers what is distributed, and a test harness is not.
 | `io.grpc:grpc-api` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-context` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-core` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
-| `io.grpc:grpc-netty` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
+| `io.grpc:grpc-netty-shaded` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-protobuf` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-protobuf-lite` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-stub` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
 | `io.grpc:grpc-util` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
-| `io.grpc:protoc-gen-grpc-java` | 1.71.0 | Apache 2.0 | https://github.com/grpc/grpc-java |
-| `io.netty:netty-buffer` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-buffer/ |
-| `io.netty:netty-codec` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-codec/ |
-| `io.netty:netty-codec-http` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-codec-http/ |
-| `io.netty:netty-codec-http2` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-codec-http2/ |
-| `io.netty:netty-codec-socks` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-codec-socks/ |
-| `io.netty:netty-common` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-common/ |
-| `io.netty:netty-handler` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-handler/ |
-| `io.netty:netty-handler-proxy` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-handler-proxy/ |
-| `io.netty:netty-resolver` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-resolver/ |
-| `io.netty:netty-transport` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-transport/ |
-| `io.netty:netty-transport-native-unix-common` | 4.1.110.Final | Apache License, Version 2.0 | https://netty.io/netty-transport-native-unix-common/ |
 | `io.perfmark:perfmark-api` | 0.27.0 | Apache 2.0 | https://github.com/perfmark/perfmark |
-| `javax.annotation:javax.annotation-api` | 1.3.2 | CDDL + GPLv2 with classpath exception | http://jcp.org/en/jsr/detail?id=250 |
 | `net.bytebuddy:byte-buddy` | 1.14.9 | Apache License, Version 2.0 | https://bytebuddy.net/byte-buddy |
 | `org.checkerframework:checker-qual` | 3.43.0 | The MIT License | https://checkerframework.org/ |
 | `org.codehaus.mojo:animal-sniffer-annotations` | 1.24 | MIT license | https://www.mojohaus.org/animal-sniffer/animal-sniffer-annotations |

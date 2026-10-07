@@ -1,4 +1,4 @@
-# Copyright 2024 Nitro Agility S.r.l.
+# Copyright (c) 2022 Nitro Agility S.r.l.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,10 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Set version
         working-directory: sdk
-        run: mvn versions:set -DnewVersion=${GITHUB_REF#refs/tags/v}
+        run: mvn --batch-mode versions:set -DgenerateBackupPoms=false -DnewVersion=${GITHUB_REF#refs/tags/v}
+      - name: Verify package
+        working-directory: sdk
+        run: mvn --batch-mode verify
       - name: Publish package
         working-directory: sdk
         run: mvn -P release --batch-mode deploy -DskipTests
