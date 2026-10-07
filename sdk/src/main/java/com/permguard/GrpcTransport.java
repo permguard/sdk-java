@@ -98,6 +98,7 @@ final class GrpcTransport implements Client.Transport {
     private static String grpcClass(Status.Code status) {
         return switch (status) {
             case INVALID_ARGUMENT, OUT_OF_RANGE -> "validation";
+            case FAILED_PRECONDITION, ALREADY_EXISTS, ABORTED -> "conflict";
             case UNAUTHENTICATED, PERMISSION_DENIED -> "authorization";
             case NOT_FOUND -> "not_found";
             case UNAVAILABLE, DEADLINE_EXCEEDED -> "unavailable";

@@ -58,6 +58,12 @@ class ClientTest {
             assertEquals("validation", refusal.errorClass());
             assertEquals("ledger_invalid", refusal.code());
             assertEquals(400, refusal.httpStatus());
+
+            var conflict = assertThrows(
+                    Refusal.class,
+                    () -> client.evaluate(Pdp.EvaluateRequest.builder("acme", "conflict").build()));
+            assertEquals("conflict", conflict.errorClass());
+            assertEquals(409, conflict.httpStatus());
         } finally {
             server.stop(0);
         }
@@ -88,6 +94,12 @@ class ClientTest {
             assertEquals("validation", refusal.errorClass());
             assertEquals("ledger_invalid", refusal.code());
             assertEquals(Status.Code.INVALID_ARGUMENT, refusal.grpcCode());
+
+            var conflict = assertThrows(
+                    Refusal.class,
+                    () -> client.evaluate(Pdp.EvaluateRequest.builder("acme", "conflict").build()));
+            assertEquals("conflict", conflict.errorClass());
+            assertEquals(Status.Code.FAILED_PRECONDITION, conflict.grpcCode());
         } finally {
             server.shutdownNow().awaitTermination();
         }
@@ -112,6 +124,11 @@ class ClientTest {
         assertThrows(IllegalArgumentException.class, () -> mapper.request(unsafe));
     }
 
+    @Test
+    void endpointsRejectEmbeddedCredentials() {
+        assertThrows(IllegalArgumentException.class, () -> new Client("http://user:secret@pdp.example"));
+    }
+
     private static void handleHttp(HttpExchange exchange, AtomicReference<String> seenPath)
             throws IOException {
         seenPath.set(exchange.getRequestURI().getPath());
@@ -128,6 +145,9 @@ class ClientTest {
             if (request.contains("\"ledger\":\"bad\"")) {
                 status = 400;
                 response = "{\"class\":\"validation\",\"code\":\"ledger_invalid\",\"message\":\"bad ledger\"}";
+            } else if (request.contains("\"ledger\":\"conflict\"")) {
+                status = 409;
+                response = "{\"code\":\"ledger_conflict\",\"message\":\"ledger changed\"}";
             } else {
                 response = "{\"decision\":true,\"request_id\":\"r1\",\"context\":{\"policies\":[\"policy-1\"]}}";
             }
@@ -154,6 +174,12 @@ class ClientTest {
                 observer.onError(Status.INVALID_ARGUMENT
                         .withDescription("bad ledger")
                         .asRuntimeException(trailers));
+                return;
+            }
+            if (request.getLedger().equals("conflict")) {
+                observer.onError(Status.FAILED_PRECONDITION
+                        .withDescription("ledger changed")
+                        .asRuntimeException());
                 return;
             }
             observer.onNext(EvaluateResponse.newBuilder()
