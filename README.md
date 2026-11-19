@@ -104,6 +104,9 @@ The same program is in [example](example/src/main/java/com/permguard/example/Che
 
 A deny is not an exception: it is a successful response with `decision() == false`.
 Validation, authorization, availability and server failures throw `Refusal`, with their stable `errorClass()` and `code()`.
+A call that fails in the client is a `Refusal` too, the same on HTTP and gRPC and in every Permguard SDK: class `unavailable` with code `timeout` when the call's timeout passed, code `unreachable` when the data plane could not be reached.
+An interruption of the calling thread is not a refusal.
+An answer is read whatever members the data plane adds to it, as gRPC reads unknown fields; a `null` in the context is sent as it is on both transports.
 
 ## Partition inputs
 
@@ -172,13 +175,13 @@ try (var client = new Client("https://pdp.example.com", options)) {
 }
 ```
 
-| Option            | Sets                                        |
-| ----------------- | ------------------------------------------- |
-| `timeout`         | the timeout of every call                   |
-| `header`          | a static header, also sent as gRPC metadata |
-| `httpClient`      | the `HttpClient` used for HTTP              |
-| `httpSslContext`  | the `SSLContext` for `https://`             |
-| `grpcCredentials` | the `ChannelCredentials` for `grpcs://`     |
+| Option            | Sets                                                                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeout`         | the timeout of every call                                                                                                                                                                         |
+| `header`          | a static header, also sent as gRPC metadata; one the SDK or a transport sets itself (`content-type`, `accept`, `host`, `grpc-*`, …) or a binary `*-bin` one is refused when the options are built |
+| `httpClient`      | the `HttpClient` used for HTTP                                                                                                                                                                    |
+| `httpSslContext`  | the `SSLContext` for `https://`                                                                                                                                                                   |
+| `grpcCredentials` | the `ChannelCredentials` for `grpcs://`                                                                                                                                                           |
 
 Every call also has an overload that takes its own timeout.
 `getConfiguration` reads the data plane's discovery document.
@@ -209,6 +212,14 @@ Compatibility is tied to that versioned interface, not to a server minor version
 mvn -f sdk/pom.xml test
 mvn -f sdk/pom.xml package
 ./scripts/third-party-notices.sh --check
+```
+
+The repository's version is a placeholder, `0.0.0-SNAPSHOT`: a release takes its version from its tag, so the version to install is the one under Install.
+
+The example in `example/` asks a data plane one question, built on the SDK of this repository:
+
+```bash
+scripts/run-example.sh grpc://localhost:7443
 ```
 
 Maven generates the protobuf and gRPC sources from the checked-in native v1 contract at every build.

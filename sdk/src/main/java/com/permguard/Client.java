@@ -25,6 +25,12 @@ public final class Client implements AutoCloseable {
         Objects.requireNonNull(endpoint, "endpoint");
         Objects.requireNonNull(options, "options");
         URI uri = URI.create(endpoint);
+        // An endpoint names its scheme: `//host:port` has none, and is refused here, not with a
+        // NullPointerException (BUG-0316).
+        if (uri.getScheme() == null) {
+            throw new IllegalArgumentException(
+                    "Permguard endpoint requires a scheme: http://, https://, grpc:// or grpcs://");
+        }
         if (uri.getHost() == null || uri.getHost().isBlank()) {
             throw new IllegalArgumentException("Permguard endpoint requires a host");
         }
@@ -99,8 +105,31 @@ public final class Client implements AutoCloseable {
             private ChannelCredentials grpcCredentials;
 
             public Builder timeout(Duration value) { timeout = positive(value, "timeout"); return this; }
+            /**
+             * A static header, also sent as gRPC metadata. A name the transports cannot carry alike
+             * is refused here, the same for both (BUG-0316): one the SDK sets itself
+             * ({@code content-type}, {@code accept}), one a transport owns ({@code host},
+             * {@code content-length}, {@code te}, {@code grpc-*}), a binary gRPC one
+             * ({@code *-bin}), or one that is not an HTTP token.
+             */
             public Builder header(String name, String value) {
-                headers.put(Objects.requireNonNull(name, "name"), Objects.requireNonNull(value, "value"));
+                Objects.requireNonNull(name, "name");
+                Objects.requireNonNull(value, "value");
+                String lower = name.toLowerCase(java.util.Locale.ROOT);
+                if (!lower.matches("[a-z0-9!#$%&'*+.^_`|~-]+")) {
+                    throw new IllegalArgumentException("header name `" + name + "` is not an HTTP token");
+                }
+                if (java.util.Set.of("content-type", "accept", "host", "content-length", "te",
+                                "connection", "transfer-encoding").contains(lower)
+                        || lower.startsWith("grpc-")
+                        || lower.endsWith("-bin")) {
+                    throw new IllegalArgumentException(
+                            "header `" + name + "` is set by the SDK or its transport, or is binary gRPC metadata");
+                }
+                if (!value.chars().allMatch(c -> c >= 0x20 && c < 0x7f)) {
+                    throw new IllegalArgumentException("header `" + name + "` has a value that is not printable ASCII");
+                }
+                headers.put(lower, value);
                 return this;
             }
             public Builder httpClient(HttpClient value) { httpClient = Objects.requireNonNull(value); return this; }

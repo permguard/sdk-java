@@ -5,11 +5,14 @@ package com.permguard;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -31,9 +34,14 @@ final class HttpTransport implements Client.Transport {
         validateEndpoint(endpoint, "HTTP");
         this.base = URI.create(endpoint.getScheme() + "://" + endpoint.getRawAuthority());
         this.headers = options.headers;
+        // A member the SDK does not know is ignored, as protobuf ignores an unknown field: the
+        // data plane adds to its answers (BUG-0273). An absent property is left out of a
+        // request, but a null inside the context is sent as gRPC sends it (BUG-0308).
         this.json = new ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .setDefaultPropertyInclusion(JsonInclude.Value.construct(
+                        JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
         if (options.httpClient != null && options.httpSslContext != null) {
             throw new IllegalArgumentException(
                     "httpSslContext cannot be combined with a supplied HttpClient");
@@ -99,10 +107,20 @@ final class HttpTransport implements Client.Transport {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw refusal(response.statusCode(), payload);
             }
-            return json.readValue(payload, responseType);
+            try {
+                return json.readValue(payload, responseType);
+            } catch (IOException exception) {
+                // Not a transport failure: the answer did not decode (BUG-0273).
+                throw new IllegalStateException("decode Permguard HTTP response", exception);
+            }
         } catch (InterruptedException exception) {
+            // The caller's own interruption is not a refusal (BUG-0284).
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("call Permguard HTTP endpoint", exception);
+            throw new IllegalStateException("call Permguard HTTP endpoint: interrupted", exception);
+        } catch (HttpTimeoutException exception) {
+            throw Refusal.timeout(exception);
+        } catch (ConnectException exception) {
+            throw Refusal.unreachable(exception);
         } catch (IOException exception) {
             throw new IllegalStateException("call Permguard HTTP endpoint", exception);
         }

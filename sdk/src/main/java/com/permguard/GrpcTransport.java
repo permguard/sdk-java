@@ -79,11 +79,29 @@ final class GrpcTransport implements Client.Transport {
         channel.shutdownNow();
     }
 
-    private Refusal refusal(StatusRuntimeException exception) {
+    private RuntimeException refusal(StatusRuntimeException exception) {
         Metadata metadata = exception.getTrailers();
         Status.Code status = exception.getStatus().getCode();
         String errorClass = metadata == null ? null : metadata.get(ERROR_CLASS);
         String code = metadata == null ? null : metadata.get(ERROR_CODE);
+        // What the client's own gRPC library reported, not the data plane: the call's deadline, a
+        // data plane it could not reach, a cancellation, as the HTTP transport reports them
+        // (BUG-0284). A status the data plane sent carries its own code.
+        if (code == null) {
+            switch (status) {
+                case DEADLINE_EXCEEDED -> {
+                    return Refusal.timeout(exception);
+                }
+                case UNAVAILABLE -> {
+                    return Refusal.unreachable(exception);
+                }
+                case CANCELLED -> {
+                    return new IllegalStateException("call Permguard gRPC endpoint: cancelled", exception);
+                }
+                default -> {
+                }
+            }
+        }
         if (errorClass == null) errorClass = grpcClass(status);
         if (code == null) code = status.name().toLowerCase(Locale.ROOT);
         String message = exception.getStatus().getDescription();

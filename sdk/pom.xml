@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <groupId>com.permguard.pep</groupId>
     <artifactId>permguard</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Permguard Java SDK</name>
@@ -19,7 +19,7 @@ SPDX-License-Identifier: Apache-2.0
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
-        <grpc.version>1.71.0</grpc.version>
+        <grpc.version>1.76.0</grpc.version>
         <protobuf.version>4.29.3</protobuf.version>
         <jackson.version>2.17.0</jackson.version>
         <junit.version>5.12.1</junit.version>

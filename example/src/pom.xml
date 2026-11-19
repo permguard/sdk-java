@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.permguard.example</groupId>
     <artifactId>permguard-check-example</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.0-SNAPSHOT</version>
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,10 +17,22 @@ SPDX-License-Identifier: Apache-2.0
         <dependency>
             <groupId>com.permguard.pep</groupId>
             <artifactId>permguard</artifactId>
-            <version>0.0.1</version>
+            <!-- The SDK of this repository, which scripts/run-example.sh installs first: a version
+                 Maven Central never holds, so a release from there is never resolved instead. -->
+            <version>0.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>
         <sourceDirectory>main/java</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>com.permguard.example.Check</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>
