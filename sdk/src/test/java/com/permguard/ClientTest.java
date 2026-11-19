@@ -118,10 +118,25 @@ class ClientTest {
         assertTrue(wire.getEvaluations(0).hasContext());
         assertTrue(wire.getEvaluations(0).hasPartitionInputs());
 
-        var unsafe = Pdp.EvaluateRequest.builder("acme", "documents")
-                .context(Map.of("unsafe", 9_007_199_254_740_992L))
-                .build();
-        assertThrows(IllegalArgumentException.class, () -> mapper.request(unsafe));
+        // BUG-0306, BUG-0307: the server's rule: 2^53 crosses; past it, value_unrepresentable;
+        // a number that is not JSON, payload_malformed; a typed refusal on both transports.
+        mapper.request(Pdp.EvaluateRequest.builder("acme", "documents")
+                .context(Map.of("n", 9_007_199_254_740_992L, "m", -9_007_199_254_740_992L, "f", 0.5))
+                .build());
+        for (var unsafe : List.<Map.Entry<Object, String>>of(
+                Map.entry(9_007_199_254_740_993L, "value_unrepresentable"),
+                Map.entry(Long.MIN_VALUE, "value_unrepresentable"),
+                Map.entry(new java.math.BigInteger("9223372036854775808"), "value_unrepresentable"),
+                Map.entry(Double.NaN, "payload_malformed"),
+                Map.entry(Double.POSITIVE_INFINITY, "payload_malformed"))) {
+            var asked = Pdp.EvaluateRequest.builder("acme", "documents")
+                    .context(Map.of("n", unsafe.getKey()))
+                    .build();
+            var refusal = assertThrows(Refusal.class, () -> Values.check(asked));
+            assertEquals("validation", refusal.errorClass());
+            assertEquals(unsafe.getValue(), refusal.code());
+            assertThrows(Refusal.class, () -> mapper.request(asked));
+        }
     }
 
     @Test

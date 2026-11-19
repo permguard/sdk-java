@@ -48,7 +48,8 @@ public final class Client implements AutoCloseable {
     }
 
     public Pdp.EvaluateResponse evaluate(Pdp.EvaluateRequest request, Duration callTimeout) {
-        return transport.evaluate(Objects.requireNonNull(request, "request"), false, positive(callTimeout, "timeout"));
+        Values.check(Objects.requireNonNull(request, "request"));
+        return transport.evaluate(request, false, positive(callTimeout, "timeout"));
     }
 
     public Pdp.EvaluateResponse evaluateMany(Pdp.EvaluateRequest request) {
@@ -56,7 +57,8 @@ public final class Client implements AutoCloseable {
     }
 
     public Pdp.EvaluateResponse evaluateMany(Pdp.EvaluateRequest request, Duration callTimeout) {
-        return transport.evaluate(Objects.requireNonNull(request, "request"), true, positive(callTimeout, "timeout"));
+        Values.check(Objects.requireNonNull(request, "request"));
+        return transport.evaluate(request, true, positive(callTimeout, "timeout"));
     }
 
     public Pdp.Configuration getConfiguration() {

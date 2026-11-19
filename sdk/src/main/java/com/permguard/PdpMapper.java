@@ -13,7 +13,6 @@ import java.lang.reflect.Array;
 import java.util.Map;
 
 final class PdpMapper {
-    private static final long MAX_EXACT_PROTO_INTEGER = (1L << 53) - 1;
     private final ObjectMapper json;
 
     PdpMapper(ObjectMapper json) {
@@ -150,25 +149,8 @@ final class PdpMapper {
     }
 
     private void validateNumbers(Object value) {
-        if (value instanceof Byte || value instanceof Short || value instanceof Integer) return;
-        if (value instanceof Long number
-                && (number > MAX_EXACT_PROTO_INTEGER || number < -MAX_EXACT_PROTO_INTEGER)) {
-            throw new IllegalArgumentException(
-                    "integer " + number + " is not exactly representable by protobuf Value");
-        }
-        if (value instanceof Float number && !Float.isFinite(number)) {
-            throw new IllegalArgumentException("JSON numbers must be finite");
-        }
-        if (value instanceof Double number && !Double.isFinite(number)) {
-            throw new IllegalArgumentException("JSON numbers must be finite");
-        }
-        if (value instanceof Map<?, ?> map) map.values().forEach(this::validateNumbers);
-        if (value instanceof Iterable<?> values) values.forEach(this::validateNumbers);
-        if (value != null && value.getClass().isArray()) {
-            for (int index = 0; index < Array.getLength(value); index++) {
-                validateNumbers(Array.get(value, index));
-            }
-        }
+        // The server's rule, the same one the client checks before either transport (BUG-0307).
+        Values.check(value);
     }
 
     private static String emptyToNull(String value) {
