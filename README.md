@@ -42,14 +42,14 @@ Maven:
 <dependency>
     <groupId>com.permguard.pep</groupId>
     <artifactId>permguard</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
 Gradle:
 
 ```kotlin
-implementation("com.permguard.pep:permguard:0.1.1")
+implementation("com.permguard.pep:permguard:0.2.0")
 ```
 
 The badge above shows the latest release.
