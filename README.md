@@ -68,7 +68,6 @@ public final class Check {
         // grpc:// or grpcs:// speaks gRPC; http:// or https:// speaks JSON.
         try (var client = new Client("grpc://localhost:7443")) {
             var request = Pdp.EvaluateRequest.builder("acme", "main-ledger")
-                    .profile("gateway")
                     .subject(new Pdp.Entity("User", "alice"))
                     .resource(new Pdp.Entity("Document", "budget-2026"))
                     .action(new Pdp.Action("read"))
@@ -86,6 +85,9 @@ public final class Check {
 ```
 
 The same program is in [example](example/src/main/java/com/permguard/example/Check.java); set `PERMGUARD_PDP_URL` to point it at another data plane.
+
+A request that names no `profile` is decided by the ledger's `default` profile: the manifest `permguard init` writes declares it, with one partition, `cedar`.
+A ledger whose manifest declares other profiles is asked with the profile's name, and its partition inputs are keyed by that profile's partitions.
 
 ### The request
 
@@ -115,7 +117,7 @@ Runtime data is addressed to the partition name the ledger's profile declares:
 ```java
 var request = Pdp.EvaluateRequest.builder("acme", "main-ledger")
         .partitionInputs(Map.of(
-                "authorization",
+                "cedar",
                 new Pdp.PartitionInput(
                         "permguard.cedar.entities.v1",
                         List.of(Map.of(

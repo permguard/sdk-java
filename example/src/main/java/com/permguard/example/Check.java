@@ -15,7 +15,6 @@ public final class Check {
                 "PERMGUARD_PDP_URL", "grpc://localhost:7443");
         try (var client = new Client(endpoint)) {
             var request = Pdp.EvaluateRequest.builder("acme", "main-ledger")
-                    .profile("gateway")
                     .subject(new Pdp.Entity("User", "alice"))
                     .resource(new Pdp.Entity("Document", "budget-2026"))
                     .action(new Pdp.Action("read"))
