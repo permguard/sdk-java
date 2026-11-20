@@ -115,13 +115,32 @@ public final class Pdp {
             Map<String, PartitionInput> partitionInputs,
             List<Evaluation> evaluations,
             EvaluationOptions options,
-            String requestId) {
+            String requestId,
+            String requestNonce) {
         public EvaluateRequest {
             Objects.requireNonNull(zone, "zone");
             Objects.requireNonNull(ledger, "ledger");
             context = immutable(context);
             partitionInputs = immutable(partitionInputs);
             evaluations = evaluations == null ? List.of() : List.copyOf(evaluations);
+        }
+
+        /** A request that asks for no signed response. */
+        public EvaluateRequest(
+                String zone,
+                String ledger,
+                String profile,
+                Entity subject,
+                Entity resource,
+                Action action,
+                Map<String, Object> context,
+                Entity principal,
+                Map<String, PartitionInput> partitionInputs,
+                List<Evaluation> evaluations,
+                EvaluationOptions options,
+                String requestId) {
+            this(zone, ledger, profile, subject, resource, action, context, principal, partitionInputs,
+                    evaluations, options, requestId, null);
         }
 
         public static Builder builder(String zone, String ledger) {
@@ -141,6 +160,7 @@ public final class Pdp {
             private List<Evaluation> evaluations = List.of();
             private EvaluationOptions options;
             private String requestId;
+            private String requestNonce;
 
             private Builder(String zone, String ledger) {
                 this.zone = Objects.requireNonNull(zone, "zone");
@@ -160,6 +180,8 @@ public final class Pdp {
             public Builder evaluations(List<Evaluation> value) { evaluations = value; return this; }
             public Builder options(EvaluationOptions value) { options = value; return this; }
             public Builder requestId(String value) { requestId = value; return this; }
+            /** Asks for a signed response: base64url without padding, 16 to 64 bytes. */
+            public Builder requestNonce(String value) { requestNonce = value; return this; }
 
             public EvaluateRequest build() {
                 return new EvaluateRequest(
@@ -174,22 +196,40 @@ public final class Pdp {
                         partitionInputs,
                         evaluations,
                         options,
-                        requestId);
+                        requestId,
+                        requestNonce);
             }
         }
     }
 
     public record Reason(String code, String message) {}
 
+    /** Where a recorded decision sits in its host's evidence stream. */
+    public record EvidencePosition(String hostId, String run, String sequence) {}
+
+    /** The evidence record of a decision: {@code recordId} and {@code position} once recorded. */
+    public record Evidence(String mode, String status, String recordId, EvidencePosition position) {}
+
+    /** A signed response: the flattened JWS parts over the decision; {@code protected} on the wire. */
+    public record Attestation(
+            @JsonProperty("protected") String protectedHeader, String payload, String signature) {}
+
     public record DecisionContext(
             String id,
             Reason reasonAdmin,
             Reason reasonUser,
             List<String> policies,
-            List<String> absentInputs) {
+            List<String> absentInputs,
+            Evidence evidence) {
         public DecisionContext {
             policies = policies == null ? List.of() : List.copyOf(policies);
             absentInputs = absentInputs == null ? List.of() : List.copyOf(absentInputs);
+        }
+
+        /** A context without decision evidence. */
+        public DecisionContext(
+                String id, Reason reasonAdmin, Reason reasonUser, List<String> policies, List<String> absentInputs) {
+            this(id, reasonAdmin, reasonUser, policies, absentInputs, null);
         }
     }
 
@@ -199,9 +239,16 @@ public final class Pdp {
             boolean decision,
             String requestId,
             DecisionContext context,
-            List<Decision> evaluations) {
+            List<Decision> evaluations,
+            Attestation attestation) {
         public EvaluateResponse {
             evaluations = evaluations == null ? List.of() : List.copyOf(evaluations);
+        }
+
+        /** An unsigned response. */
+        public EvaluateResponse(
+                boolean decision, String requestId, DecisionContext context, List<Decision> evaluations) {
+            this(decision, requestId, context, evaluations, null);
         }
     }
 
@@ -213,11 +260,33 @@ public final class Pdp {
             String pdp,
             Endpoints endpoints,
             List<String> capabilities,
-            StoreScope storeScope) {
+            StoreScope storeScope,
+            String version,
+            String component,
+            String state,
+            String stage,
+            String sunset,
+            Map<String, Long> limits,
+            ResponseSigning responseSigning) {
         public Configuration {
             capabilities = capabilities == null ? List.of() : List.copyOf(capabilities);
+            limits = limits == null ? Map.of() : Map.copyOf(limits);
+            responseSigning = responseSigning == null ? new ResponseSigning("", null, null) : responseSigning;
+        }
+
+        /** A discovery document that names no version, lifecycle, limits or response signing. */
+        public Configuration(
+                String interfaceName,
+                String pdp,
+                Endpoints endpoints,
+                List<String> capabilities,
+                StoreScope storeScope) {
+            this(interfaceName, pdp, endpoints, capabilities, storeScope, null, null, null, null, null, null, null);
         }
     }
+
+    /** Whether the PDP signs a response a request asks it to sign. */
+    public record ResponseSigning(String state, Integer validitySeconds, Integer clockSkewSeconds) {}
 
     private static <K, V> Map<K, V> immutable(Map<K, V> value) {
         return value == null

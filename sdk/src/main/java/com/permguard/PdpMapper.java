@@ -37,6 +37,7 @@ final class PdpMapper {
             builder.setEvaluationsSemantic(semantic(value.options().evaluationsSemantic()));
         }
         if (value.requestId() != null) builder.setRequestId(value.requestId());
+        if (value.requestNonce() != null) builder.setRequestNonce(value.requestNonce());
         return builder.build();
     }
 
@@ -45,7 +46,13 @@ final class PdpMapper {
                 value.getDecision(),
                 emptyToNull(value.getRequestId()),
                 value.hasContext() ? context(value.getContext()) : null,
-                value.getEvaluationsList().stream().map(this::decision).toList());
+                value.getEvaluationsList().stream().map(this::decision).toList(),
+                value.hasAttestation()
+                        ? new Pdp.Attestation(
+                                value.getAttestation().getProtected(),
+                                value.getAttestation().getPayload(),
+                                value.getAttestation().getSignature())
+                        : null);
     }
 
     Pdp.Configuration configuration(GetConfigurationResponse value) {
@@ -59,8 +66,23 @@ final class PdpMapper {
                         value.getStoreScope().getLedger(),
                         value.getStoreScope().getProfile())
                 : new Pdp.StoreScope("", "", "", "");
+        var signing = value.getResponseSigning();
         return new Pdp.Configuration(
-                value.getInterface(), value.getPdp(), endpoints, value.getCapabilitiesList(), scope);
+                value.getInterface(),
+                value.getPdp(),
+                endpoints,
+                value.getCapabilitiesList(),
+                scope,
+                value.getVersion(),
+                value.getComponent(),
+                value.getState(),
+                value.getStage(),
+                value.hasSunset() ? value.getSunset() : null,
+                value.getLimitsMap(),
+                new Pdp.ResponseSigning(
+                        signing.getState(),
+                        signing.getValiditySeconds() == 0 ? null : signing.getValiditySeconds(),
+                        signing.getClockSkewSeconds() == 0 ? null : signing.getClockSkewSeconds()));
     }
 
     private com.permguard.internal.grpc.v1.Entity entity(Pdp.Entity value) {
@@ -119,7 +141,21 @@ final class PdpMapper {
                 value.hasReasonAdmin() ? reason(value.getReasonAdmin()) : null,
                 value.hasReasonUser() ? reason(value.getReasonUser()) : null,
                 value.getPoliciesList(),
-                value.getAbsentInputsList());
+                value.getAbsentInputsList(),
+                value.hasEvidence() ? evidence(value.getEvidence()) : null);
+    }
+
+    private Pdp.Evidence evidence(com.permguard.internal.grpc.v1.Evidence value) {
+        return new Pdp.Evidence(
+                value.getMode(),
+                value.getStatus(),
+                value.hasRecordId() ? value.getRecordId() : null,
+                value.hasPosition()
+                        ? new Pdp.EvidencePosition(
+                                value.getPosition().getHostId(),
+                                value.getPosition().getRun(),
+                                value.getPosition().getSequence())
+                        : null);
     }
 
     private Pdp.Reason reason(com.permguard.internal.grpc.v1.Reason value) {

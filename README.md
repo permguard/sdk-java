@@ -101,6 +101,7 @@ A ledger whose manifest declares other profiles is asked with the profile's name
 | `context`               | any other fact the policies read                                        |
 | `partitionInputs`       | runtime data for the partitions of the profile, see below               |
 | `requestId`             | your id for the call, given back in the answer                          |
+| `requestNonce`          | asks for a signed response, see below                                   |
 
 ### The answer
 
@@ -109,6 +110,9 @@ Validation, authorization, availability and server failures throw `Refusal`, wit
 A call that fails in the client is a `Refusal` too, the same on HTTP and gRPC and in every Permguard SDK: class `unavailable` with code `timeout` when the call's timeout passed, code `unreachable` when the data plane could not be reached.
 An interruption of the calling thread is not a refusal.
 An answer is read whatever members the data plane adds to it, as gRPC reads unknown fields; a `null` in the context is sent as it is on both transports.
+
+Each decision's `context().evidence()` says how the plane recorded it: its `mode`, its `status` and, once recorded, its `recordId` and `position`.
+A request that sets `requestNonce` (base64url without padding, 16 to 64 bytes) asks for a signed response, and the answer carries the plane's `attestation()`: the plane signs only for an authenticated caller, and refuses with `unauthenticated` rather than answer unsigned.
 
 ## Partition inputs
 
@@ -208,6 +212,10 @@ See the [Authority Plane](https://docs.permguard.com/how-it-works/authority-plan
 This major version implements `permguard.api.pdp.native.v1`.
 Compatibility is tied to that versioned interface, not to a server minor version.
 
+The contract this release carries is the `pdp.proto` of Permguard `v0.1.33`, the tag [PERMGUARD_CONTRACT](PERMGUARD_CONTRACT) names: CI fails when the copy in `sdk/src/main/proto` differs from it, and runs the tests against a data plane of that release over HTTP and gRPC.
+It covers the decision interface: a request may ask for a signed response with `requestNonce`, and the answer carries the plane's `attestation()` and each decision's `context().evidence()`; the discovery document carries the version, lifecycle, limits and response signing.
+The temporal interface, `permguard.api.pdp.temporal.v1alpha1`, is not covered by this SDK.
+
 ## Develop
 
 ```bash
@@ -225,6 +233,8 @@ scripts/run-example.sh grpc://localhost:7443
 ```
 
 Maven generates the protobuf and gRPC sources from the checked-in native v1 contract at every build.
+`sdk/src/main/proto/permguard/data/v1/pdp.proto` is the canonical contract of the Permguard release `PERMGUARD_CONTRACT` names, with the Java options added; `bash scripts/check-contract.sh sdk/src/main/proto/permguard/data/v1/pdp.proto` checks it.
+`bash scripts/e2e-server.sh` starts that release with a ledger the end-to-end test asks (`E2E_HTTP=http://127.0.0.1:7443 E2E_GRPC=grpc://127.0.0.1:7443 mvn -f sdk/pom.xml test -Dtest=DataPlaneE2E`); `E2E_PORT_OFFSET` moves its ports when another server holds them.
 
 ## License
 

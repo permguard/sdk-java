@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: pdp.proto is the one PERMGUARD_CONTRACT names
+        run: bash scripts/check-contract.sh sdk/src/main/proto/permguard/data/v1/pdp.proto
       - name: Set up Maven Central Repository
         uses: actions/setup-java@v4
         with:
